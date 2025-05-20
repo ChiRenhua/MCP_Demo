@@ -104,8 +104,8 @@ export default {
     // 如果是 /sse 端点，直接交给 MCP Server 处理
     if (url.pathname === '/sse') {
       try {
-        // 修正 API 调用方式
-        return server.handle(request, env);
+        // 使用 server 实例直接处理请求
+        return await server.handleSse(request, env);
       } catch (error) {
         console.error('MCP Server error:', error);
         

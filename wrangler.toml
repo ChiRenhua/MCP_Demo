@@ -6,3 +6,7 @@ compatibility_flags = ["nodejs_compat"]
 [[migrations]]
 tag = "v2"
 deleted_classes = ["AmapWeatherMCP"]
+
+# wrangler.toml (wrangler v3.88.0^)
+[observability.logs]
+enabled = true
