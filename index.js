@@ -99,15 +99,14 @@ export default {
     const url = new URL(request.url);
     const method = request.method;
     
-    // 处理 Streamable HTTP 请求 (替代旧的 SSE)
+    // 处理 Streamable HTTP 请求
     if (url.pathname === '/mcp') {
       try {
         // 无状态模式 - 为每个请求创建新的实例
-        // 处理 Streamable HTTP 请求
         if (method === 'POST') {
           // 处理请求-响应消息
           const body = await request.json();
-          return await server.handleStreamableHttpRequest(request, env, body);
+          return await server.handleStreamableHttp(request, env, body);
         } else if (method === 'GET') {
           // 对于 GET 请求，返回方法不允许
           return new Response(JSON.stringify({
@@ -149,30 +148,6 @@ export default {
         }), {
           status: 500,
           headers: { 'Content-Type': 'application/json' }
-        });
-      }
-    }
-    
-    // 向后兼容：保留旧的 /sse 端点，但使用新的处理方式
-    else if (url.pathname === '/sse') {
-      try {
-        // 使用 streamableHttp 处理 SSE 请求，提供兼容性
-        return await server.handleSse(request, env);
-      } catch (error) {
-        console.error('MCP Server error:', error);
-        
-        // 返回一个正确格式的 SSE 响应
-        return new Response(`retry: 1000\ndata: ${JSON.stringify({
-          error: 'MCP Server error',
-          message: error.message
-        })}\n\n`, {
-          status: 200,
-          headers: {
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-            'Access-Control-Allow-Origin': '*'
-          }
         });
       }
     }
