@@ -1,5 +1,6 @@
 import { Router } from 'itty-router';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { CloudflareWorkersTransport } from '@modelcontextprotocol/sdk/server/cloudflareWorkers.js';
 import { z } from 'zod';
 import { cityCodes } from './cityCodeData';
 
@@ -8,8 +9,6 @@ const server = new McpServer({
   name: "Amap Weather MCP",
   version: "1.0.0",
   protocolVersion: "2025-03-26",
-}, {
-  customResponder: true // 表示我们将自己处理响应
 });
 
 // 添加城市代码查询工具
@@ -104,18 +103,16 @@ export default {
     // 处理 MCP 请求
     if (url.pathname === '/mcp') {
       try {
+        // 创建 CloudflareWorkersTransport 实例
+        const transport = new CloudflareWorkersTransport();
+        
         if (method === 'POST') {
           const body = await request.json();
           
-          // 直接处理 JSON-RPC 请求
-          const result = await server.handleJsonRpc(body, env);
-          
-          // 构建响应
-          return new Response(JSON.stringify(result), {
-            status: 200,
-            headers: {
-              'Content-Type': 'application/json'
-            }
+          // 返回处理结果
+          return transport.handleRequest(request, body, async () => {
+            await server.connect(transport);
+            return env;
           });
         } else if (method === 'GET' || method === 'DELETE') {
           // 对于 GET 和 DELETE 请求，返回方法不允许
