@@ -93,18 +93,70 @@ async function fetchWeatherData(city, extensions = 'base', env) {
   return response.json();
 }
 
-// 创建一个路由处理 MCP 请求
-const router = Router();
-
-// 不再使用路由，直接导出处理函数
+// 导出处理函数
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    const method = request.method;
     
-    // 如果是 /sse 端点，直接交给 MCP Server 处理
-    if (url.pathname === '/sse') {
+    // 处理 Streamable HTTP 请求 (替代旧的 SSE)
+    if (url.pathname === '/mcp') {
       try {
-        // 使用 server 实例直接处理请求
+        // 无状态模式 - 为每个请求创建新的实例
+        // 处理 Streamable HTTP 请求
+        if (method === 'POST') {
+          // 处理请求-响应消息
+          const body = await request.json();
+          return await server.handleStreamableHttpRequest(request, env, body);
+        } else if (method === 'GET') {
+          // 对于 GET 请求，返回方法不允许
+          return new Response(JSON.stringify({
+            jsonrpc: "2.0",
+            error: {
+              code: -32000,
+              message: "Method not allowed for stateless server."
+            },
+            id: null
+          }), { 
+            status: 405,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        } else if (method === 'DELETE') {
+          // 对于 DELETE 请求，返回方法不允许
+          return new Response(JSON.stringify({
+            jsonrpc: "2.0",
+            error: {
+              code: -32000,
+              message: "Method not allowed for stateless server."
+            },
+            id: null
+          }), { 
+            status: 405,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+      } catch (error) {
+        console.error('MCP Server error:', error);
+        
+        // 返回错误响应
+        return new Response(JSON.stringify({
+          jsonrpc: '2.0',
+          error: {
+            code: -32603,
+            message: `Internal server error: ${error.message}`
+          },
+          id: null
+        }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+    }
+    
+    // 向后兼容：保留旧的 /sse 端点，但使用新的处理方式
+    else if (url.pathname === '/sse') {
+      try {
+        // 使用 streamableHttp 处理 SSE 请求，提供兼容性
         return await server.handleSse(request, env);
       } catch (error) {
         console.error('MCP Server error:', error);
@@ -127,7 +179,7 @@ export default {
     
     // 首页路由
     if (url.pathname === '/' || url.pathname === '') {
-      return new Response('Amap Weather MCP Service is running. Connect to /sse with an MCP client.', {
+      return new Response('Amap Weather MCP Service is running. Connect to /mcp with an MCP client.', {
         headers: {'Content-Type': 'text/plain'}
       });
     }
