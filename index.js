@@ -1,8 +1,6 @@
 import { McpAgent } from 'agents/mcp';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import OAuthProvider from '@cloudflare/workers-oauth-provider';
-import DefaultHandler from './auth-handler';
 import { cityCodes } from './cityCodeData';
 
 // Define our MCP server functionality
@@ -81,12 +79,5 @@ export class AmapWeatherMCP extends McpAgent {
   }
 }
 
-// Create a new instance of our MCP server
-export default new OAuthProvider({
-  apiRoute: "/sse",
-  apiHandler: AmapWeatherMCP.Router,
-  defaultHandler: DefaultHandler,
-  authorizeEndpoint: "/authorize",
-  tokenEndpoint: "/token",
-  clientRegistrationEndpoint: "/register",
-}); 
+// 直接导出 McpAgent 实例，而不是 OAuthProvider
+export default new AmapWeatherMCP(); 

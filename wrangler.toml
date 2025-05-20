@@ -11,6 +11,3 @@ bindings = [
 [[migrations]]
 tag = "v1"
 new_classes = ["AmapWeatherMCP"]
-
-[vars]
-AMAP_API_KEY = "75f6c229bfca3ca04987867a672df63c" 
