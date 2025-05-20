@@ -3,6 +3,10 @@ main = "index.js"
 compatibility_date = "2023-09-01"
 compatibility_flags = ["nodejs_compat"]
 
+[[migrations]]
+tag = "v1"  # 自定义标签，用于标识一次迁移版本
+new_classes = ["AmapWeatherMCP"]  # 这是您的 Durable Object 类名，必须与代码中的一致
+
 [durable_objects]
 bindings = [
   { name = "MCP_HANDLER", class_name = "AmapWeatherMCP" }
