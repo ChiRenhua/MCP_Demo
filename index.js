@@ -1,6 +1,5 @@
 import { Router } from 'itty-router';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { z } from 'zod';
 import { cityCodes } from './cityCodeData';
 
@@ -9,6 +8,8 @@ const server = new McpServer({
   name: "Amap Weather MCP",
   version: "1.0.0",
   protocolVersion: "2025-03-26",
+}, {
+  customResponder: true // 表示我们将自己处理响应
 });
 
 // 添加城市代码查询工具
@@ -100,20 +101,21 @@ export default {
     const url = new URL(request.url);
     const method = request.method;
     
-    // 处理 Streamable HTTP 请求
+    // 处理 MCP 请求
     if (url.pathname === '/mcp') {
       try {
-        // 创建 StreamableHTTPServerTransport 实例来处理请求
-        const transport = new StreamableHTTPServerTransport({
-          sessionIdGenerator: () => crypto.randomUUID()
-        });
-        
-        // 处理请求-响应消息
         if (method === 'POST') {
           const body = await request.json();
-          return transport.handleRequest(request, body, async () => {
-            await server.connect(transport);
-            return env;
+          
+          // 直接处理 JSON-RPC 请求
+          const result = await server.handleJsonRpc(body, env);
+          
+          // 构建响应
+          return new Response(JSON.stringify(result), {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json'
+            }
           });
         } else if (method === 'GET' || method === 'DELETE') {
           // 对于 GET 和 DELETE 请求，返回方法不允许
