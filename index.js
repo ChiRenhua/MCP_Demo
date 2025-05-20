@@ -1,20 +1,17 @@
 import { McpAgent } from 'agents/mcp';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { cityCodes } from './cityCodeData.js';
+import { cityCodes } from './cityCodeData';
 
+// Define our MCP server functionality
 export class AmapWeatherMCP extends McpAgent {
   server = new McpServer({
     name: "Amap Weather MCP",
     version: "1.0.0",
   });
 
-  constructor(state, env) {
-    super({ state, env }); // ✅ Cloudflare 会注入 state, env，你需要传给父类
-    this.init();
-  }
-
   async init() {
+    // Add a tool to get city code by Chinese name
     this.server.tool(
       'getCityCode',
       '根据城市中文名称获取城市代码',
@@ -23,25 +20,27 @@ export class AmapWeatherMCP extends McpAgent {
       },
       async ({ cityName }) => {
         const cityInfo = cityCodes[cityName];
+        
         if (!cityInfo) {
           return {
             content: [{ type: 'text', text: `未找到城市"${cityName}"的代码信息` }]
           };
         }
-
+        
         return {
-          content: [{
-            type: 'text',
+          content: [{ 
+            type: 'text', 
             text: JSON.stringify({
               cityName,
               adcode: cityInfo.adcode,
               citycode: cityInfo.citycode
-            }, null, 2)
+            }, null, 2) 
           }]
         };
       }
     );
 
+    // Add a tool to fetch weather forecast
     this.server.tool(
       'getWeatherForecast',
       '获取城市的天气预报信息',
@@ -57,6 +56,12 @@ export class AmapWeatherMCP extends McpAgent {
     );
   }
 
+  /**
+   * Fetch weather data from Amap Weather API
+   * @param {string} city - City code
+   * @param {string} extensions - Weather type (base/all)
+   * @returns {Promise<Object>} - Weather data
+   */
   async fetchWeatherData(city, extensions = 'base') {
     const url = new URL('https://restapi.amap.com/v3/weather/weatherInfo');
     url.searchParams.append('key', this.env.AMAP_API_KEY);
@@ -65,9 +70,14 @@ export class AmapWeatherMCP extends McpAgent {
     url.searchParams.append('output', 'JSON');
 
     const response = await fetch(url.toString());
+    
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
     }
+    
     return response.json();
   }
 }
+
+// 直接导出 McpAgent 实例，而不是 OAuthProvider
+export default new AmapWeatherMCP(); 
