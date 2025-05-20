@@ -103,8 +103,26 @@ export default {
     
     // 如果是 /sse 端点，直接交给 MCP Server 处理
     if (url.pathname === '/sse') {
-      const handler = server.handleRequest();
-      return handler(request, env);
+      try {
+        // 修正 API 调用方式
+        return server.handle(request, env);
+      } catch (error) {
+        console.error('MCP Server error:', error);
+        
+        // 返回一个正确格式的 SSE 响应
+        return new Response(`retry: 1000\ndata: ${JSON.stringify({
+          error: 'MCP Server error',
+          message: error.message
+        })}\n\n`, {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'Access-Control-Allow-Origin': '*'
+          }
+        });
+      }
     }
     
     // 首页路由
