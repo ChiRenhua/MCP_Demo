@@ -1,7 +1,6 @@
 import { Router } from 'itty-router';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { CryptoSessionIdGenerator } from '@modelcontextprotocol/sdk/server/sessionIdGenerator.js';
 import { z } from 'zod';
 import { cityCodes } from './cityCodeData';
 
@@ -95,8 +94,10 @@ async function fetchWeatherData(city, extensions = 'base', env) {
   return response.json();
 }
 
-// 创建会话ID生成器 - 适用于无状态环境
-const sessionIdGenerator = new CryptoSessionIdGenerator();
+// 自定义会话ID生成器
+const customSessionIdGenerator = {
+  generate: () => crypto.randomUUID()
+};
 
 // 导出处理函数
 export default {
@@ -111,7 +112,7 @@ export default {
       try {
         // 使用 StreamableHTTPServerTransport 处理请求，并配置会话ID生成器
         const transport = new StreamableHTTPServerTransport({
-          sessionIdGenerator,
+          sessionIdGenerator: customSessionIdGenerator,
           stateless: true // 指定为无状态模式，适用于 Cloudflare Workers
         });
         
