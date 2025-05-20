@@ -3,22 +3,26 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { cityCodes } from './cityCodeData';
 
-// Define our MCP server functionality
+// Define our MCP server functionality with correct construction pattern
 export class AmapWeatherMCP extends McpAgent {
-  server = new McpServer({
-    name: "Amap Weather MCP",
-    version: "1.0.0",
-  });
+  constructor(state, env) {
+    super(state, env);
+    this.server = new McpServer({
+      name: "Amap Weather MCP",
+      version: "1.0.0",
+      protocolVersion: "2025-03-26", // 使用最新协议版本
+    });
+  }
 
   async init() {
-    // Add a tool to get city code by Chinese name
-    this.server.tool(
-      'getCityCode',
-      '根据城市中文名称获取城市代码',
-      {
+    // 按照最新规范定义工具
+    this.server.defineTool({
+      name: 'getCityCode',
+      description: '根据城市中文名称获取城市代码',
+      paramSchema: {
         cityName: z.string().describe('城市的中文名称，如"北京市"、"上海市"等')
       },
-      async ({ cityName }) => {
+      handler: async ({ cityName }) => {
         const cityInfo = cityCodes[cityName];
         
         if (!cityInfo) {
@@ -38,22 +42,22 @@ export class AmapWeatherMCP extends McpAgent {
           }]
         };
       }
-    );
+    });
 
-    // Add a tool to fetch weather forecast
-    this.server.tool(
-      'getWeatherForecast',
-      '获取城市的天气预报信息',
-      {
+    // 按照最新规范定义工具
+    this.server.defineTool({
+      name: 'getWeatherForecast',
+      description: '获取城市的天气预报信息',
+      paramSchema: {
         city: z.string().describe('城市代码（adcode）')
       },
-      async ({ city }) => {
+      handler: async ({ city }) => {
         const data = await this.fetchWeatherData(city, 'all');
         return {
           content: [{ type: 'text', text: JSON.stringify(data, null, 2) }]
         };
       }
-    );
+    });
   }
 
   /**
@@ -79,5 +83,8 @@ export class AmapWeatherMCP extends McpAgent {
   }
 }
 
-// 直接导出 McpAgent 实例，而不是 OAuthProvider
-export default new AmapWeatherMCP(); 
+// 创建一个默认导出函数，用于处理 Worker 请求
+export default {
+  // 从 agents/mcp 获取路由器功能
+  fetch: AmapWeatherMCP.Router
+}; 

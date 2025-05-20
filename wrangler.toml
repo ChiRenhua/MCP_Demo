@@ -1,6 +1,6 @@
 name = "amap-weather-mcp"
 main = "index.js"
-compatibility_date = "2023-09-01"
+compatibility_date = "2025-05-01"
 compatibility_flags = ["nodejs_compat"]
 
 [durable_objects]
@@ -10,4 +10,4 @@ bindings = [
 
 [[migrations]]
 tag = "v1"
-new_sqlite_classes = ["AmapWeatherMCP"]
+new_classes = ["AmapWeatherMCP"]
