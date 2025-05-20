@@ -1,0 +1,16 @@
+name = "amap-weather-mcp"
+main = "index.js"
+compatibility_date = "2023-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+[durable_objects]
+bindings = [
+  { name = "MCP_HANDLER", class_name = "AmapWeatherMCP" }
+]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["AmapWeatherMCP"]
+
+[vars]
+AMAP_API_KEY = "75f6c229bfca3ca04987867a672df63c" 
