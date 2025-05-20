@@ -104,7 +104,9 @@ export default {
     if (url.pathname === '/mcp') {
       try {
         // 创建 StreamableHTTPServerTransport 实例来处理请求
-        const transport = new StreamableHTTPServerTransport();
+        const transport = new StreamableHTTPServerTransport({
+          sessionIdGenerator: () => crypto.randomUUID()
+        });
         
         // 处理请求-响应消息
         if (method === 'POST') {
