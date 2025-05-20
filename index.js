@@ -107,18 +107,26 @@ async function fetchWeatherData(city, extensions = 'base', env) {
 
 // 创建一个路由处理 MCP 请求
 const router = Router();
-router.get('/sse', (request, env) => server.handleRequest()(request, env));
-router.post('/sse', (request, env) => server.handleRequest()(request, env));
 
-// 添加首页路由
-router.get('/', () => new Response('Amap Weather MCP Service is running. Connect to /sse with an MCP client.', {
-  headers: {'Content-Type': 'text/plain'}
-}));
-
-// 捕获所有其他请求
-router.all('*', () => new Response('Not found', { status: 404 }));
-
-// 导出默认处理函数
+// 不再使用路由，直接导出处理函数
 export default {
-  fetch: router.handle
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+    
+    // 如果是 /sse 端点，直接交给 MCP Server 处理
+    if (url.pathname === '/sse') {
+      const handler = server.handleRequest();
+      return handler(request, env);
+    }
+    
+    // 首页路由
+    if (url.pathname === '/' || url.pathname === '') {
+      return new Response('Amap Weather MCP Service is running. Connect to /sse with an MCP client.', {
+        headers: {'Content-Type': 'text/plain'}
+      });
+    }
+    
+    // 404 响应
+    return new Response('Not found', { status: 404 });
+  }
 }; 
