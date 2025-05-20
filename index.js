@@ -47,10 +47,16 @@ server.tool(
     city: z.string().describe('城市代码（adcode）')
   },
   async ({ city }, env) => {
-    const data = await fetchWeatherData(city, 'all', env);
-    return {
-      content: [{ type: 'text', text: JSON.stringify(data, null, 2) }]
-    };
+    try {
+      const data = await fetchWeatherData(city, 'all', env);
+      return {
+        content: [{ type: 'text', text: JSON.stringify(data, null, 2) }]
+      };
+    } catch (error) {
+      return {
+        content: [{ type: 'text', text: `错误: ${error.message}` }]
+      };
+    }
   }
 );
 
@@ -62,31 +68,13 @@ server.tool(
  * @returns {Promise<Object>} - 天气数据
  */
 async function fetchWeatherData(city, extensions = 'base', env) {
-  // 如果没有配置API密钥，返回模拟数据
+  // 如果没有配置API密钥，返回错误信息
   if (!env.AMAP_API_KEY) {
     return {
-      "status": "1",
-      "count": "1",
-      "info": "OK",
-      "infocode": "10000",
-      "forecasts": [{
-        "city": city,
-        "adcode": city,
-        "province": "模拟省份",
-        "reporttime": new Date().toISOString(),
-        "casts": [{
-          "date": new Date().toISOString().split('T')[0],
-          "week": "1",
-          "dayweather": "晴",
-          "nightweather": "多云",
-          "daytemp": "26",
-          "nighttemp": "20",
-          "daywind": "西南",
-          "nightwind": "西南",
-          "daypower": "≤3",
-          "nightpower": "≤3"
-        }]
-      }]
+      "status": "0",
+      "info": "ERROR",
+      "infocode": "10001",
+      "message": "未配置高德地图 API 密钥 (AMAP_API_KEY)"
     };
   }
   
