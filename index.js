@@ -1,6 +1,6 @@
 import { Router } from 'itty-router';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { CloudflareWorkersTransport } from '@modelcontextprotocol/sdk/server/cloudflareWorkers.js';
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { z } from 'zod';
 import { cityCodes } from './cityCodeData';
 
@@ -94,6 +94,75 @@ async function fetchWeatherData(city, extensions = 'base', env) {
   return response.json();
 }
 
+// 创建一个基础传输层适配器，专门用于 Cloudflare Workers
+class WorkerTransport {
+  constructor() {
+    this.notificationListeners = new Map();
+    this.requestHandlers = new Map();
+  }
+
+  // 注册请求处理器
+  setRequestHandler(method, handler) {
+    this.requestHandlers.set(method, handler);
+  }
+
+  // 发送通知（MCP 要求）
+  sendNotification(method, params) {
+    // Worker 环境中通知暂不处理
+    return Promise.resolve();
+  }
+
+  // 处理 JSON-RPC 请求
+  async handleJsonRpc(request, context) {
+    const { jsonrpc, method, params, id } = request;
+    
+    // 验证 JSON-RPC 请求
+    if (jsonrpc !== '2.0') {
+      return {
+        jsonrpc: '2.0',
+        error: {
+          code: -32600,
+          message: 'Invalid Request: jsonrpc must be "2.0"'
+        },
+        id
+      };
+    }
+
+    // 查找处理器
+    const handler = this.requestHandlers.get(method);
+    
+    if (!handler) {
+      return {
+        jsonrpc: '2.0',
+        error: {
+          code: -32601,
+          message: `Method ${method} not found`
+        },
+        id
+      };
+    }
+
+    try {
+      // 调用处理器并返回结果
+      const result = await handler(params, context);
+      return {
+        jsonrpc: '2.0',
+        result,
+        id
+      };
+    } catch (error) {
+      return {
+        jsonrpc: '2.0',
+        error: {
+          code: -32603,
+          message: error.message || 'Internal error'
+        },
+        id
+      };
+    }
+  }
+}
+
 // 导出处理函数
 export default {
   async fetch(request, env, ctx) {
@@ -103,16 +172,24 @@ export default {
     // 处理 MCP 请求
     if (url.pathname === '/mcp') {
       try {
-        // 创建 CloudflareWorkersTransport 实例
-        const transport = new CloudflareWorkersTransport();
-        
         if (method === 'POST') {
           const body = await request.json();
           
-          // 返回处理结果
-          return transport.handleRequest(request, body, async () => {
-            await server.connect(transport);
-            return env;
+          // 创建自定义传输层
+          const transport = new WorkerTransport();
+          
+          // 连接服务器到传输层
+          await server.connect(transport);
+          
+          // 处理 JSON-RPC 请求
+          const response = await transport.handleJsonRpc(body, env);
+          
+          // 构建响应
+          return new Response(JSON.stringify(response), {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json'
+            }
           });
         } else if (method === 'GET' || method === 'DELETE') {
           // 对于 GET 和 DELETE 请求，返回方法不允许
