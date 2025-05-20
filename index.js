@@ -1,5 +1,6 @@
 import { Router } from 'itty-router';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { z } from 'zod';
 import { cityCodes } from './cityCodeData';
 
@@ -102,26 +103,18 @@ export default {
     // 处理 Streamable HTTP 请求
     if (url.pathname === '/mcp') {
       try {
-        // 无状态模式 - 为每个请求创建新的实例
+        // 创建 StreamableHTTPServerTransport 实例来处理请求
+        const transport = new StreamableHTTPServerTransport();
+        
+        // 处理请求-响应消息
         if (method === 'POST') {
-          // 处理请求-响应消息
           const body = await request.json();
-          return await server.handleStreamableHttp(request, env, body);
-        } else if (method === 'GET') {
-          // 对于 GET 请求，返回方法不允许
-          return new Response(JSON.stringify({
-            jsonrpc: "2.0",
-            error: {
-              code: -32000,
-              message: "Method not allowed for stateless server."
-            },
-            id: null
-          }), { 
-            status: 405,
-            headers: { 'Content-Type': 'application/json' }
+          return transport.handleRequest(request, body, async () => {
+            await server.connect(transport);
+            return env;
           });
-        } else if (method === 'DELETE') {
-          // 对于 DELETE 请求，返回方法不允许
+        } else if (method === 'GET' || method === 'DELETE') {
+          // 对于 GET 和 DELETE 请求，返回方法不允许
           return new Response(JSON.stringify({
             jsonrpc: "2.0",
             error: {
