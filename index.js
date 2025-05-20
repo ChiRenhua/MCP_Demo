@@ -1,6 +1,7 @@
 import { Router } from 'itty-router';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { CryptoSessionIdGenerator } from '@modelcontextprotocol/sdk/server/sessionIdGenerator.js';
 import { z } from 'zod';
 import { cityCodes } from './cityCodeData';
 
@@ -47,9 +48,9 @@ server.tool(
   {
     city: z.string().describe('城市代码（adcode）')
   },
-  async ({ city }, env) => {
+  async ({ city }, context) => {
     try {
-      const data = await fetchWeatherData(city, 'all', env);
+      const data = await fetchWeatherData(city, 'all', context.env);
       return {
         content: [{ type: 'text', text: JSON.stringify(data, null, 2) }]
       };
@@ -94,8 +95,8 @@ async function fetchWeatherData(city, extensions = 'base', env) {
   return response.json();
 }
 
-// 存储活跃的会话
-const sessions = new Map();
+// 创建会话ID生成器 - 适用于无状态环境
+const sessionIdGenerator = new CryptoSessionIdGenerator();
 
 // 导出处理函数
 export default {
@@ -108,8 +109,11 @@ export default {
       const context = { env };
       
       try {
-        // 使用 StreamableHTTPServerTransport 处理请求
-        const transport = new StreamableHTTPServerTransport();
+        // 使用 StreamableHTTPServerTransport 处理请求，并配置会话ID生成器
+        const transport = new StreamableHTTPServerTransport({
+          sessionIdGenerator,
+          stateless: true // 指定为无状态模式，适用于 Cloudflare Workers
+        });
         
         // 连接服务器实例到传输层
         await server.connect(transport);
