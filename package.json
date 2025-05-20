@@ -10,9 +10,10 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.11.4",
     "agents": "^0.0.88",
+    "itty-router": "^5.0.18",
     "zod": "^3.22.4"
   },
   "devDependencies": {
     "wrangler": "^3.0.0"
   }
-} 
+}

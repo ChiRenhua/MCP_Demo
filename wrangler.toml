@@ -3,11 +3,6 @@ main = "index.js"
 compatibility_date = "2025-05-01"
 compatibility_flags = ["nodejs_compat"]
 
-[durable_objects]
-bindings = [
-  { name = "MCP_HANDLER", class_name = "AmapWeatherMCP" }
-]
-
 [[migrations]]
-tag = "v1"
-new_sqlite_classes = ["AmapWeatherMCP"]
+tag = "v2"
+deleted_classes = ["AmapWeatherMCP"]
